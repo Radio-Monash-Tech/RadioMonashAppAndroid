@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Opt-in to Media3 UnstableApi project-wide -->
+    <issue id="UnsafeOptInUsageError">
+        <option name="opt-in" value="androidx.media3.common.util.UnstableApi" />
+    </issue>
+
+    <!-- Suppress warnings for unused resources that may be referenced dynamically or kept for future use -->
+    <issue id="UnusedResources" severity="warning" />
+</lint>
