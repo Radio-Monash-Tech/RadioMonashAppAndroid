@@ -144,7 +144,6 @@ notificationManager = CustomNotificationManager(
             requireNotNull(player),
             requireNotNull(mediaSession)
         )
-notificationManager?.allowStartForeground = isServiceStarted
     }
     
     private fun handlePlaybackError(error: PlaybackException) {
@@ -187,11 +186,16 @@ notificationManager?.allowStartForeground = isServiceStarted
         }
         Log.d(TAG, "Playback state: $stateDescription")
     }
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int
+    ): Int {
         super.onStartCommand(intent, flags, startId)
+
         isServiceStarted = true
         handleIntentAction(intent?.action)
-notificationManager?.onServiceStarted()
+
         return START_STICKY
     }
     

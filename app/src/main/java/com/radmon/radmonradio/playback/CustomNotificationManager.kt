@@ -58,7 +58,6 @@ class CustomNotificationManager(
         isDestroyed = true
         unregisterPlayerListener()
         dismissNotification()
-        terminateService()
         cancelPauseTimeout()
         recycleBitmap()
     }
@@ -104,16 +103,11 @@ class CustomNotificationManager(
     private var currentLargeIcon: Bitmap? = null
     private var currentAccentColor: Int = DEFAULT_ACCENT
     @Volatile
-    var allowStartForeground: Boolean = false
     private var timeoutHandler: Handler? = null
     private var timeoutRunnable: Runnable? = null
     @Volatile
     private var isDestroyed: Boolean = false
-    
-    fun onServiceStarted() {
-        allowStartForeground = true
-        updateNotification()
-    }
+
     private fun updateNotification() {
         val metadata = player.mediaMetadata
         val isPlaying = player.isPlaying
@@ -243,40 +237,25 @@ class CustomNotificationManager(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
     }
-    
+
     @SuppressLint("MissingPermission")
     private fun manageForegroundServiceState(
-notification: Notification,
+        notification: Notification,
         isPlaying: Boolean
     ) {
+        systemNotificationManager.notify(
+            NOTIFICATION_ID,
+            notification
+        )
+
         if (isPlaying) {
             cancelPauseTimeout()
-            if (allowStartForeground) {
-                startForegroundService(notification)
-            } else {
-                systemNotificationManager.notify(NOTIFICATION_ID, notification)
-            }
         } else {
-            stopForegroundService(notification)
-            systemNotificationManager.notify(NOTIFICATION_ID, notification)
             schedulePauseTimeout()
         }
     }
-    
-    @SuppressLint("InlinedApi")
-    private fun startForegroundService(notification: Notification) {
-        ServiceCompat.startForeground(
-            service,
-            NOTIFICATION_ID,
-notification,
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-        )
-    }
-    
-    @SuppressLint("MissingPermission")
-    private fun stopForegroundService(notification: Notification) {
-        ServiceCompat.stopForeground(service, ServiceCompat.STOP_FOREGROUND_DETACH)
-    }
+
+
     private fun schedulePauseTimeout() {
         cancelPauseTimeout()
         val handler = Handler(service.mainLooper)
