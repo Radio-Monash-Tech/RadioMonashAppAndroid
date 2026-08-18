@@ -91,15 +91,19 @@ import androidx.core.view.WindowCompat
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.graphics.drawable.Icon
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.google.common.util.concurrent.ListenableFuture
 import com.radmon.radmonradio.playback.PlaybackService
 import com.radmon.radmonradio.ui.theme.RadmonradioTheme
 import com.radmon.radmonradio.util.Perf
+import kotlin.collections.contains
 
 @UnstableApi
 class MainActivity : ComponentActivity() {
@@ -189,6 +193,11 @@ notifPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                     mediaController = mediaController,
                     radioViewModel = radioViewModel
                 )
+                val backStackEntry by navController.currentBackStackEntryAsState()
+                val currentScreen = backStackEntry?.destination?.route
+                if (currentScreen in listOf("articles", "radio")) {
+                    MyBottomAppBar(navController)
+                }
             }
         }
     }
@@ -207,5 +216,50 @@ notifPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         WindowCompat.setDecorFitsSystemWindows(window, false)
     }
 }
+
+@Composable
+//bottom bar used in home/setting/medcoach/symptom screen
+fun MyBottomAppBar(navController: NavHostController) {
+    var selectedItem by remember { mutableIntStateOf(0) }
+    val items = listOf(
+        "articles",
+        "radio",
+    )
+    //creating the bar
+    NavigationBar {
+        //for each item we want to be a bar
+        items.forEachIndexed { index, item ->
+
+            //making the items
+            NavigationBarItem(
+                //creating the icons
+                icon = {
+                    when (item) {
+                        "articles" -> Icon(Icons.Filled.Description, contentDescription = "Home")
+                        "radio" -> Icon(Icons.Filled.Leaderboard, contentDescription = "Radio")
+
+                    }
+                },
+                label = {
+                    when (item) {
+                        "articles" -> "Articles"
+                        "radio" -> "Radio"
+                        else -> ""
+
+                    }
+                },
+                //creating a variable to save where we want to go
+                selected = selectedItem == index,
+
+                //making it navigate to that screen when clicked
+                onClick = {
+                    selectedItem = index
+                    navController.navigate(item)
+                }
+            )
+        }
+    }
+}
+
 
 
