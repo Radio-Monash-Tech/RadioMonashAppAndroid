@@ -1,10 +1,14 @@
 package com.radmon.radmonradio.ui.screens
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Article
 import androidx.compose.runtime.Composable
-import androidx.media3.session.MediaController
-import com.radmon.radmonradio.RadioUiState
-import com.radmon.radmonradio.RadioViewModel
 
 @Composable
-fun ArticlesScreen(onNavigateBack: () -> Unit
-) {}
+fun ArticlesScreen(onNavigateBack: () -> Unit) {
+    PlaceholderScreen(
+        title = "Journalism",
+        subtitle = "Articles from Radio Monash will appear here.",
+        icon = Icons.Filled.Article
+    )
+}

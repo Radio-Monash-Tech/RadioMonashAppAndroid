@@ -10,6 +10,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.radmon.radmonradio.ui.screens.ArticlesScreen
 import com.radmon.radmonradio.ui.screens.FavoritesScreen
+import com.radmon.radmonradio.ui.screens.LibraryScreen
+import com.radmon.radmonradio.ui.screens.ScheduleScreen
+import com.radmon.radmonradio.ui.screens.SearchScreen
 import com.radmon.radmonradio.ui.screens.StatisticsScreen
 import com.radmon.radmonradio.ui.screens.ModernRadioScreen
 
@@ -48,6 +51,15 @@ fun MyNavHost(innerPadding: PaddingValues, navController: NavHostController, uiS
             ArticlesScreen(
                 onNavigateBack = { navController.popBackStack() },
             )
+        }
+        composable("schedule") {
+            ScheduleScreen()
+        }
+        composable("library") {
+            LibraryScreen()
+        }
+        composable("search") {
+            SearchScreen()
         }
     }
 }

@@ -24,22 +24,26 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Leaderboard
+import androidx.compose.material.icons.automirrored.filled.LibraryBooks
+import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Radio
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -49,6 +53,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -145,8 +150,8 @@ notifPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
 
                 Scaffold(
                     bottomBar = {
-                        if (currentScreen in listOf("articles", "radio")) {
-                            MyBottomAppBar(navController)
+                        if (currentScreen in TOP_LEVEL_ROUTES) {
+                            MyBottomAppBar(navController, currentScreen)
                         }
                     }
                 ) { innerPadding ->
@@ -177,44 +182,39 @@ notifPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
     }
 }
 
+// routes that show the bottom tab bar; matches the iOS tab order exactly:
+// Live, Schedule, Journalism, Library, Search
+val TOP_LEVEL_ROUTES = listOf("radio", "schedule", "articles", "library", "search")
+
+private data class BottomTab(val route: String, val label: String, val icon: ImageVector)
+
+private val BOTTOM_TABS = listOf(
+    BottomTab("radio", "Live", Icons.Filled.Radio),
+    BottomTab("schedule", "Schedule", Icons.Filled.CalendarMonth),
+    BottomTab("articles", "Journalism", Icons.Filled.Article),
+    BottomTab("library", "Library", Icons.AutoMirrored.Filled.LibraryBooks),
+    BottomTab("search", "Search", Icons.Filled.Search),
+)
+
 @Composable
-//bottom bar used in home/setting/medcoach/symptom screen
-fun MyBottomAppBar(navController: NavHostController) {
-    var selectedItem by remember { mutableIntStateOf(0) }
-    val items = listOf(
-        "articles",
-        "radio",
-    )
-    //creating the bar
+//bottom tab bar: Live, Schedule, Journalism, Library, Search
+fun MyBottomAppBar(navController: NavHostController, currentRoute: String?) {
     NavigationBar {
-        //for each item we want to be a bar
-        items.forEachIndexed { index, item ->
-
-            //making the items
+        BOTTOM_TABS.forEach { tab ->
             NavigationBarItem(
-                //creating the icons
-                icon = {
-                    when (item) {
-                        "articles" -> Icon(Icons.Filled.Description, contentDescription = "Home")
-                        "radio" -> Icon(Icons.Filled.Leaderboard, contentDescription = "Radio")
-
-                    }
-                },
-                label = {
-                    when (item) {
-                        "articles" -> "Articles"
-                        "radio" -> "Radio"
-                        else -> ""
-
-                    }
-                },
-                //creating a variable to save where we want to go
-                selected = selectedItem == index,
-
-                //making it navigate to that screen when clicked
+                icon = { Icon(tab.icon, contentDescription = tab.label) },
+                label = { Text(tab.label) },
+                selected = currentRoute == tab.route,
                 onClick = {
-                    selectedItem = index
-                    navController.navigate(item)
+                    if (currentRoute != tab.route) {
+                        navController.navigate(tab.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
                 }
             )
         }
