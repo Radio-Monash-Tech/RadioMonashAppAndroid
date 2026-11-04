@@ -3,10 +3,6 @@ package com.radmon.radmonradio.data.network
 import retrofit2.http.GET
 import retrofit2.http.Query
 
-/**
- * Retrofit service interface for iTunes Search API.
- * Used to search for track information and artwork.
- */
 interface ITunesApiService {
     /**
      * Searches iTunes catalog for matching tracks.

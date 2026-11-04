@@ -1,7 +1,3 @@
-/**
- * RadioCult's artwork shape: a size label ("512x512", "default", ...) mapped to a url.
- * Named to match the iOS app's ArtworkVariants.
- */
 package com.radmon.radmonradio.data.network
 
 import com.google.gson.JsonDeserializationContext

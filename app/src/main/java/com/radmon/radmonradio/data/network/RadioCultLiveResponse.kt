@@ -1,7 +1,3 @@
-/**
- * The JSON shape of GET schedule/live, and its conversion to the app's NowPlaying/LiveShow
- * models. Named and structured to match the iOS app's RadioCultLiveResponse.swift.
- */
 package com.radmon.radmonradio.data.network
 
 import com.google.gson.JsonDeserializationContext

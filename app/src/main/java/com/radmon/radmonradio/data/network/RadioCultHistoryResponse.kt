@@ -1,7 +1,3 @@
-/**
- * The JSON shape of GET streaming/history/latest-results, and its conversion to the app's
- * PlayedTrack model. Named to match the iOS app's RadioCultHistoryResponse.swift.
- */
 package com.radmon.radmonradio.data.network
 
 import com.radmon.radmonradio.data.model.PlayedTrack

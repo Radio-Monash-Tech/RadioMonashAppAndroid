@@ -1,6 +1,4 @@
-/**
- * Favorites screen displaying user-liked tracks with swipe-to-delete.
- */
+/** Favorites screen displaying user-liked tracks with swipe-to-delete. */
 package com.radmon.radmonradio.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn

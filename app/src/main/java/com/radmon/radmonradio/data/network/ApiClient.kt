@@ -6,10 +6,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
-/**
- * Central API client providing access to all remote services.
- * Uses Retrofit for HTTP networking with shared OkHttp client configuration.
- */
 object ApiClient {
     private const val BASE_URL = "https://api.radiocult.fm/"
     private const val ITUNES_BASE_URL = "https://itunes.apple.com/"

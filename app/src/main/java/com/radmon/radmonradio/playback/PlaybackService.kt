@@ -153,7 +153,16 @@ notificationManager = CustomNotificationManager(
             requireNotNull(mediaSession)
         )
     }
-    
+
+    /**
+     * CustomNotificationManager builds its own notification and manages this service's
+     * foreground state directly (via its own Player.Listener). Without this override, Media3's
+     * built-in default notification system also runs in parallel, producing a second,
+     * generic-looking "player" for this app alongside the custom one.
+     */
+    override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
+    }
+
     private fun handlePlaybackError(error: PlaybackException) {
         when (error.errorCode) {
             PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,

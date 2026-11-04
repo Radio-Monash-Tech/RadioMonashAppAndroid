@@ -5,10 +5,7 @@
     UnstableApi::class
 )
 @file:Suppress("OPT_IN_ARGUMENT_IS_NOT_MARKER")
-/**
- * Main activity hosting the radio app UI.
- * Displays now playing screen with navigation to favorites and statistics.
- */
+/** Main activity hosting the radio app UI. Displays now playing screen with navigation to favorites and statistics. */
 package com.radmon.radmonradio
 import android.content.ComponentName
 import android.content.pm.ShortcutInfo

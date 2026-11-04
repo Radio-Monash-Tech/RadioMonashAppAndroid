@@ -1,7 +1,3 @@
-/**
- * Retrofit service for RadioCult, the station's radio platform.
- * Named and shaped to match the iOS app's RadioCultClient.
- */
 package com.radmon.radmonradio.data.network
 
 import retrofit2.http.GET

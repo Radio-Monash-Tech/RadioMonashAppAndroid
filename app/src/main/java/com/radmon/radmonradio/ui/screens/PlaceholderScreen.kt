@@ -18,11 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
-/**
- * Shared placeholder for tabs that haven't been built out yet.
- * Gives each tab a real Scaffold/TopAppBar so the nav shell reads correctly
- * even before the screen has real content.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaceholderScreen(

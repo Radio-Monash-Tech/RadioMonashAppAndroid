@@ -79,9 +79,13 @@ class CustomNotificationManager(
     }
     
     private fun dismissNotification() {
+        try {
+            ServiceCompat.stopForeground(service, ServiceCompat.STOP_FOREGROUND_REMOVE)
+        } catch (e: Exception) {
+        }
         systemNotificationManager.cancel(NOTIFICATION_ID)
     }
-    
+
     private fun terminateService() {
         service.stopSelf()
     }
@@ -238,19 +242,39 @@ class CustomNotificationManager(
         )
     }
 
+    @Volatile
+    private var hasStartedForeground = false
+
     @SuppressLint("MissingPermission")
     private fun manageForegroundServiceState(
         notification: Notification,
         isPlaying: Boolean
     ) {
-        systemNotificationManager.notify(
-            NOTIFICATION_ID,
-            notification
-        )
+        // the service was started with startForegroundService(), which requires a prompt
+        // startForeground() call regardless of play state; once that's satisfied, foreground
+        // status is only held while actually playing.
+        if (isPlaying || !hasStartedForeground) {
+            try {
+                ServiceCompat.startForeground(
+                    service,
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                )
+                hasStartedForeground = true
+            } catch (e: Exception) {
+                systemNotificationManager.notify(NOTIFICATION_ID, notification)
+            }
+        } else {
+            systemNotificationManager.notify(NOTIFICATION_ID, notification)
+        }
 
         if (isPlaying) {
             cancelPauseTimeout()
         } else {
+            if (hasStartedForeground) {
+                ServiceCompat.stopForeground(service, ServiceCompat.STOP_FOREGROUND_DETACH)
+            }
             schedulePauseTimeout()
         }
     }

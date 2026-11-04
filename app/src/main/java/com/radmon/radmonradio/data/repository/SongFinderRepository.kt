@@ -1,7 +1,4 @@
-/**
- * Repository for finding multi-platform links for songs.
- * Searches iTunes for track info and fetches streaming links via Song.link API.
- */
+/** Repository for finding multi-platform links for songs. */
 package com.radmon.radmonradio.data.repository
 import android.util.Log
 import com.radmon.radmonradio.data.network.ApiClient

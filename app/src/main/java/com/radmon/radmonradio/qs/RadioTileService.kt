@@ -1,7 +1,3 @@
-/**
- * Quick Settings tile for controlling radio playback.
- * Allows play/pause directly from Android Quick Settings panel.
- */
 package com.radmon.radmonradio.qs
 import android.content.ComponentName
 import android.content.Intent

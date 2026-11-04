@@ -11,10 +11,7 @@ import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 
-/**
- * Repository for fetching radio station metadata and play history.
- * Handles API calls and error handling for RadioCult live stream information.
- */
+/** Repository for fetching radio station metadata and play history. Handles API calls and error handling */
 class RadioRepository {
     private val service = ApiClient.radioCultService
 

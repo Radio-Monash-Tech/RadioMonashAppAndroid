@@ -1,6 +1,4 @@
-/**
- * Performance monitoring utilities.
- */
+/** Performance monitoring utilities. */
 package com.radmon.radmonradio.util
 import android.app.ActivityManager
 import android.content.Context

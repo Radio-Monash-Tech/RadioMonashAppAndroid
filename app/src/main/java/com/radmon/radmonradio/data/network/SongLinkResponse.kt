@@ -2,9 +2,7 @@ package com.radmon.radmonradio.data.network
 
 import com.google.gson.annotations.SerializedName
 
-/**
- * Response from Song.link API containing multi-platform links.
- */
+/** Response from Song.link API containing multi-platform links. */
 data class SongLinkResponse(
     @SerializedName("linksByPlatform")
     val linksByPlatform: Map<String, PlatformLink>?,

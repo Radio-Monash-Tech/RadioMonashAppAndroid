@@ -1,6 +1,4 @@
-/**
- * Composable bottom sheet displaying multi-platform music streaming links.
- */
+/** Composable bottom sheet displaying multi-platform music streaming links. */
 package com.radmon.radmonradio.ui.components
 import android.content.Intent
 import android.net.Uri

@@ -2,9 +2,6 @@ package com.radmon.radmonradio.data.network
 
 import com.google.gson.annotations.SerializedName
 
-/**
- * Response from iTunes Search API.
- */
 data class ITunesSearchResponse(
     @SerializedName("resultCount")
     val resultCount: Int,

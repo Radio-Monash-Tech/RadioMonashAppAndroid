@@ -1,6 +1,4 @@
-/**
- * Composable bottom sheet listing the current track and recently played history.
- */
+/** composable bottom sheet listing the current track and recently played history. */
 package com.radmon.radmonradio.ui.components
 
 import androidx.compose.foundation.background
