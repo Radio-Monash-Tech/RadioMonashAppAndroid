@@ -9,7 +9,10 @@ import com.radmon.radmonradio.data.repository.RadioRepository
 import com.radmon.radmonradio.data.repository.FavoritesRepository
 import com.radmon.radmonradio.data.repository.SongFinderRepository
 import com.radmon.radmonradio.data.model.FavoriteTrack
+import com.radmon.radmonradio.data.model.NowPlaying
+import com.radmon.radmonradio.data.network.ScheduleLiveResponse
 import com.radmon.radmonradio.data.network.SongData
+import com.radmon.radmonradio.data.network.toNowPlaying
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import kotlinx.coroutines.Job
@@ -35,12 +38,10 @@ sealed class LoadingState {
     ) : LoadingState()
 }
 
-enum class ConnectionQuality {
-    EXCELLENT,
+enum class Connectivity {
     GOOD,
-    FAIR,
-    POOR,
-    DISCONNECTED
+    WEAK,
+    OFFLINE
 }
 
 data class RadioUiState(
@@ -48,7 +49,7 @@ data class RadioUiState(
     val artistName: String = DEFAULT_ARTIST,
     val artworkUrl: String = DEFAULT_ARTWORK_URL,
     val loadingState: LoadingState = LoadingState.Loading,
-    val connectionQuality: ConnectionQuality = ConnectionQuality.GOOD,
+    val connectivity: Connectivity = Connectivity.GOOD,
     val isRefreshing: Boolean = false,
     val consecutiveErrors: Int = 0
 ) {
@@ -103,7 +104,7 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
     
     private suspend fun fetchMetadata(): Long {
         var nextPollDelay = DEFAULT_POLL_INTERVAL_MS
-        repository.getCurrentTrack()
+        repository.liveStatus()
             .onSuccess { response ->
 nextPollDelay = handleSuccessfulResponse(response)
             }
@@ -113,49 +114,40 @@ nextPollDelay = calculateBackoffDelay()
             }
         return nextPollDelay
     }
-    
-    private fun handleSuccessfulResponse(response: com.radmon.radmonradio.data.network.MetadataResponse): Long {
-        val metadata = response.result?.metadata
-        return if (isMetadataValid(metadata)) {
-            updateStateWithMetadata(metadata!!)
-            calculateNextFetchDelay(metadata)
-        } else {
-            handleInvalidMetadata()
-            DEFAULT_POLL_INTERVAL_MS
-        }
+
+    private fun handleSuccessfulResponse(response: ScheduleLiveResponse): Long {
+        val (nowPlaying, liveShow) = response.toNowPlaying()
+        updateStateWithNowPlaying(nowPlaying, liveShow)
+        return calculateNextFetchDelay(nowPlaying)
     }
-    
-    private fun isMetadataValid(metadata: com.radmon.radmonradio.data.network.Metadata?): Boolean {
-        return !metadata?.title.isNullOrBlank() && !metadata?.artist.isNullOrBlank()
-    }
-    
-    private fun updateStateWithMetadata(metadata: com.radmon.radmonradio.data.network.Metadata) {
+
+    private fun updateStateWithNowPlaying(nowPlaying: NowPlaying, liveShow: com.radmon.radmonradio.data.model.LiveShow?) {
         _uiState.update { currentState ->
             currentState.copy(
-                songTitle = metadata.title.orEmpty(),
-                artistName = metadata.artist.orEmpty(),
-                artworkUrl = metadata.artwork?.default ?: currentState.artworkUrl,
+                songTitle = liveShow?.name ?: nowPlaying.title,
+                artistName = if (liveShow != null) "Live Now" else nowPlaying.artist,
+                artworkUrl = nowPlaying.artworkUrl ?: currentState.artworkUrl,
                 loadingState = LoadingState.Success,
-                connectionQuality = ConnectionQuality.EXCELLENT,
+                connectivity = Connectivity.GOOD,
                 consecutiveErrors = 0
             )
         }
         resetErrorState()
     }
-    
-    private fun calculateNextFetchDelay(metadata: com.radmon.radmonradio.data.network.Metadata): Long {
-        val duration = metadata.duration
-        val startTime = metadata.startTimestamp
-        return if (duration != null && startTime != null) {
-            if (duration <= 0 || startTime <= 0) {
+
+    private fun calculateNextFetchDelay(nowPlaying: NowPlaying): Long {
+        val duration = nowPlaying.duration
+        val startTimeSeconds = nowPlaying.startedAt?.let { it.time / MILLISECONDS_PER_SECOND }
+        return if (duration != null && startTimeSeconds != null) {
+            if (duration <= 0 || startTimeSeconds <= 0) {
                 return DEFAULT_POLL_INTERVAL_MS
             }
             val currentTimeSeconds = System.currentTimeMillis() / MILLISECONDS_PER_SECOND
-            val timeDiff = kotlin.math.abs(currentTimeSeconds - startTime)
-            if (timeDiff > 86400) { 
+            val timeDiff = kotlin.math.abs(currentTimeSeconds - startTimeSeconds)
+            if (timeDiff > 86400) {
                 return DEFAULT_POLL_INTERVAL_MS
             }
-            val elapsedSeconds = currentTimeSeconds - startTime
+            val elapsedSeconds = currentTimeSeconds - startTimeSeconds
             val remainingSeconds = duration - elapsedSeconds
             if (remainingSeconds <= 0) {
                 return POST_TRACK_FETCH_DELAY_MS
@@ -166,14 +158,7 @@ nextPollDelay = calculateBackoffDelay()
             DEFAULT_POLL_INTERVAL_MS
         }
     }
-    
-    private fun handleInvalidMetadata() {
-        updateErrorState(
-            message = ERROR_MESSAGE_INCOMPLETE_DATA,
-            recoverable = false
-        )
-    }
-    
+
     private fun handleErrorResponse(error: Throwable) {
         Log.e(TAG, "Metadata fetch error", error)
         updateErrorState(
@@ -197,19 +182,17 @@ nextPollDelay = calculateBackoffDelay()
             val newErrorCount = currentState.consecutiveErrors + 1
             currentState.copy(
                 loadingState = LoadingState.Error(message, recoverable),
-                connectionQuality = assessConnectionQuality(newErrorCount),
+                connectivity = assessConnectivity(newErrorCount),
                 consecutiveErrors = newErrorCount
             )
         }
     }
-    
-    private fun assessConnectionQuality(errorCount: Int): ConnectionQuality {
-        return when (errorCount) {
-            0 -> ConnectionQuality.EXCELLENT
-            1 -> ConnectionQuality.GOOD
-            2 -> ConnectionQuality.FAIR
-            3 -> ConnectionQuality.POOR
-            else -> ConnectionQuality.DISCONNECTED
+
+    private fun assessConnectivity(errorCount: Int): Connectivity {
+        return when {
+            errorCount <= 1 -> Connectivity.GOOD
+            errorCount == 2 -> Connectivity.WEAK
+            else -> Connectivity.OFFLINE
         }
     }
     
@@ -295,7 +278,6 @@ nextPollDelay = calculateBackoffDelay()
         private const val ERROR_MESSAGE_TIMEOUT = "Connection timeout. Please try again"
         private const val ERROR_MESSAGE_NETWORK_ERROR = "Network error. Check your connection"
         private const val ERROR_MESSAGE_GENERIC = "Unable to load track info. Tap to retry"
-        private const val ERROR_MESSAGE_INCOMPLETE_DATA = "Incomplete track information received"
     }
 }
 

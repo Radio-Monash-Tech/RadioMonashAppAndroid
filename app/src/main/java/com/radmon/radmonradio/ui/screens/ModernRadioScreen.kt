@@ -99,7 +99,7 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import coil.compose.AsyncImage
 
-import com.radmon.radmonradio.ConnectionQuality
+import com.radmon.radmonradio.Connectivity
 import com.radmon.radmonradio.LoadingState
 import com.radmon.radmonradio.R
 import com.radmon.radmonradio.RadioUiState
@@ -147,7 +147,7 @@ fun ModernRadioScreen(
         ) {
             val favorites by viewModel.favorites.collectAsStateWithLifecycle(initialValue = emptyList())
             ModernTopBar(
-                connectionQuality = uiState.connectionQuality,
+                connectivity = uiState.connectivity,
                 onStatisticsClick = onNavigateToStatistics,
                 onFavoritesClick = onNavigateToFavorites,
                 favoritesCount = favorites.size
@@ -284,7 +284,7 @@ private fun ArtworkBackgroundLayer(artworkUrl: String) {
 
 @Composable
 private fun ModernTopBar(
-    connectionQuality: ConnectionQuality,
+    connectivity: Connectivity,
     onStatisticsClick: () -> Unit,
     onFavoritesClick: () -> Unit,
     favoritesCount: Int
@@ -317,7 +317,7 @@ private fun ModernTopBar(
                 ),
                 color = Color.White
             )
-            ConnectionQualityBadge(quality = connectionQuality)
+            ConnectionQualityBadge(quality = connectivity)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             var favPressed by remember { mutableStateOf(false) }
@@ -412,20 +412,18 @@ private fun ModernTopBar(
 }
 
 @Composable
-private fun ConnectionQualityBadge(quality: ConnectionQuality) {
+private fun ConnectionQualityBadge(quality: Connectivity) {
     val (targetColor, text) = when (quality) {
-        ConnectionQuality.EXCELLENT -> Color(0xFF1DB954) to stringResource(id = R.string.status_live)
-        ConnectionQuality.GOOD -> Color(0xFF1DB954) to stringResource(id = R.string.status_live)
-        ConnectionQuality.FAIR -> Color(0xFFFFA726) to stringResource(id = R.string.status_buffering)
-        ConnectionQuality.POOR -> Color(0xFFEF5350) to stringResource(id = R.string.status_poor)
-        ConnectionQuality.DISCONNECTED -> Color(0xFFEF5350) to stringResource(id = R.string.status_offline)
+        Connectivity.GOOD -> Color(0xFF1DB954) to stringResource(id = R.string.status_live)
+        Connectivity.WEAK -> Color(0xFFFFA726) to stringResource(id = R.string.status_buffering)
+        Connectivity.OFFLINE -> Color(0xFFEF5350) to stringResource(id = R.string.status_offline)
     }
     val color by animateColorAsState(
         targetValue = targetColor,
         animationSpec = tween(500, easing = FastOutSlowInEasing),
         label = "badgeColor"
     )
-    val isLive = quality == ConnectionQuality.EXCELLENT || quality == ConnectionQuality.GOOD
+    val isLive = quality == Connectivity.GOOD
     val infiniteTransition = rememberInfiniteTransition(label = "livePulse")
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = if (isLive) 0.5f else 1f,
@@ -449,11 +447,9 @@ private fun ConnectionQualityBadge(quality: ConnectionQuality) {
         label = "badgeContent"
     ) { currentQuality ->
         val (animatedColor, animatedText) = when (currentQuality) {
-            ConnectionQuality.EXCELLENT -> Color(0xFF1DB954) to stringResource(id = R.string.status_live)
-            ConnectionQuality.GOOD -> Color(0xFF1DB954) to stringResource(id = R.string.status_live)
-            ConnectionQuality.FAIR -> Color(0xFFFFA726) to stringResource(id = R.string.status_buffering)
-            ConnectionQuality.POOR -> Color(0xFFEF5350) to stringResource(id = R.string.status_poor)
-            ConnectionQuality.DISCONNECTED -> Color(0xFFEF5350) to stringResource(id = R.string.status_offline)
+            Connectivity.GOOD -> Color(0xFF1DB954) to stringResource(id = R.string.status_live)
+            Connectivity.WEAK -> Color(0xFFFFA726) to stringResource(id = R.string.status_buffering)
+            Connectivity.OFFLINE -> Color(0xFFEF5350) to stringResource(id = R.string.status_offline)
         }
         val badgeColor by animateColorAsState(
             targetValue = animatedColor,

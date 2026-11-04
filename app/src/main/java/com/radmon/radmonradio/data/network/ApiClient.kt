@@ -1,5 +1,6 @@
 package com.radmon.radmonradio.data.network
 
+import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -22,14 +23,20 @@ object ApiClient {
         .callTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    /** Service for fetching radio station metadata */
-    val apiService: RadioApiService by lazy {
+    /** RadioCult's `artwork` field and conditional `content` field need custom decoding. */
+    private val radioCultGson = GsonBuilder()
+        .registerTypeAdapter(ArtworkVariants::class.java, ArtworkVariantsDeserializer())
+        .registerTypeAdapter(LiveResult::class.java, LiveResultDeserializer())
+        .create()
+
+    /** Service for talking to RadioCult, the station's radio platform */
+    val radioCultService: RadioCultService by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(radioCultGson))
             .build()
-            .create(RadioApiService::class.java)
+            .create(RadioCultService::class.java)
     }
 
     /** Service for searching iTunes music catalog */

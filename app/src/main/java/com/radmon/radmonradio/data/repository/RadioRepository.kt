@@ -1,8 +1,10 @@
 package com.radmon.radmonradio.data.repository
 
 import android.util.Log
+import com.radmon.radmonradio.data.model.PlayedTrack
 import com.radmon.radmonradio.data.network.ApiClient
-import com.radmon.radmonradio.data.network.MetadataResponse
+import com.radmon.radmonradio.data.network.ScheduleLiveResponse
+import com.radmon.radmonradio.data.network.toPlayedTracks
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -10,34 +12,28 @@ import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 
 /**
- * Repository for fetching radio station metadata.
- * Handles API calls and error handling for live stream information.
+ * Repository for fetching radio station metadata and play history.
+ * Handles API calls and error handling for RadioCult live stream information.
  */
 class RadioRepository {
-    private val apiService = ApiClient.apiService
+    private val service = ApiClient.radioCultService
 
     /**
-     * Fetches the currently playing track information.
-     * @return Result containing metadata response or error
+     * Fetches what's on air right now.
+     * @return Result containing the live-status response or error
      */
-    suspend fun getCurrentTrack(): Result<MetadataResponse> = withContext(Dispatchers.IO) {
-        runCatching {
-            val response = apiService.getNowPlaying()
-            validateResponse(response)
-            response
-        }.onFailure { exception ->
-            logError(exception)
-        }
+    suspend fun liveStatus(): Result<ScheduleLiveResponse> = withContext(Dispatchers.IO) {
+        runCatching { service.liveStatus() }
+            .onFailure { exception -> logError(exception) }
     }
 
     /**
-     * Validates API response contains required metadata.
-     * @throws IllegalArgumentException if metadata is null
+     * Fetches recently played songs.
+     * @return Result containing the played tracks or error
      */
-    private fun validateResponse(response: MetadataResponse) {
-        requireNotNull(response.result?.metadata) {
-            "API response validation failed: metadata is null"
-        }
+    suspend fun history(limit: Int = 20): Result<List<PlayedTrack>> = withContext(Dispatchers.IO) {
+        runCatching { service.history(limit).toPlayedTracks() }
+            .onFailure { exception -> logError(exception) }
     }
 
     /**
@@ -57,7 +53,7 @@ class RadioRepository {
     private fun logError(exception: Throwable) {
         Log.e(
             TAG,
-            "Metadata retrieval failed: ${exception.message}",
+            "RadioCult request failed: ${exception.message}",
             exception
         )
     }
