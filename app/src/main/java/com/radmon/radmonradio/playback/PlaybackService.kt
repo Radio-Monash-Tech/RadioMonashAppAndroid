@@ -228,12 +228,15 @@ notificationManager = CustomNotificationManager(
     override fun onTaskRemoved(rootIntent: Intent?) {
         handleTaskRemoval()
     }
-    
+
     private fun handleTaskRemoval() {
-        val shouldStopService = mediaSession?.player?.playWhenReady == false
-        if (shouldStopService) {
-            stopSelf()
+        // the app doesn't support background playback, so stop the stream and
+        // the service as soon as the app is swiped away from recents
+        mediaSession?.player?.apply {
+            pause()
+            stop()
         }
+        stopSelf()
     }
     override fun onDestroy() {
         Log.d(TAG, "Service cleanup initiated")
