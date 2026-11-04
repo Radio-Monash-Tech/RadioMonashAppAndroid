@@ -5,6 +5,7 @@
 package com.radmon.radmonradio.playback
 import android.content.Intent
 import android.util.Log
+import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
@@ -84,6 +85,13 @@ class PlaybackService : MediaSessionService() {
             .setLoadControl(loadControl)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .setHandleAudioBecomingNoisy(true)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                    .build(),
+                /* handleAudioFocus= */ true
+            )
             .build()
     }
     
@@ -226,16 +234,20 @@ notificationManager = CustomNotificationManager(
         return mediaSession
     }
     override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
         handleTaskRemoval()
     }
 
     private fun handleTaskRemoval() {
-        // the app doesn't support background playback, so stop the stream and
-        // the service as soon as the app is swiped away from recents
+        // the app doesn't support background playback. stopSelf() alone isn't enough here:
+        // it only takes effect once every bound client (e.g. MainActivity's MediaController)
+        // has unbound, which can lag behind the task being swiped away. So release everything
+        // - stream, media session, notification - immediately instead of waiting for that.
         mediaSession?.player?.apply {
             pause()
             stop()
         }
+        releaseResources()
         stopSelf()
     }
     override fun onDestroy() {
@@ -247,8 +259,12 @@ notificationManager = CustomNotificationManager(
         releaseResources()
         super.onDestroy()
     }
-    
+
+    @Volatile
+    private var hasReleasedResources = false
     private fun releaseResources() {
+        if (hasReleasedResources) return
+        hasReleasedResources = true
         recordFinalSessionEnd()
         releaseNotificationManager()
         releaseMediaSession()
