@@ -1,3 +1,4 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.radmon.radmonradio.ui.screens
 
 import androidx.compose.animation.AnimatedContent
@@ -43,18 +44,24 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
@@ -100,6 +107,7 @@ import androidx.media3.session.MediaController
 import coil.compose.AsyncImage
 
 import com.radmon.radmonradio.Connectivity
+import com.radmon.radmonradio.HistoryState
 import com.radmon.radmonradio.LoadingState
 import com.radmon.radmonradio.R
 import com.radmon.radmonradio.RadioUiState
@@ -107,6 +115,8 @@ import com.radmon.radmonradio.RadioViewModel
 
 import com.radmon.radmonradio.SongFinderState
 import com.radmon.radmonradio.ui.components.PlatformLinksBottomSheet
+import com.radmon.radmonradio.ui.components.RecentlyPlayedSheet
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.random.Random
@@ -247,6 +257,14 @@ fun ModernRadioScreen(
             }
             SongFinderState.Idle -> {  }
         }
+        val historyState by viewModel.historyState.collectAsStateWithLifecycle()
+        if (historyState != HistoryState.Idle) {
+            RecentlyPlayedSheet(
+                uiState = uiState,
+                historyState = historyState,
+                onDismiss = { viewModel.dismissHistory() }
+            )
+        }
     }
 }
 @Composable
@@ -309,15 +327,14 @@ private fun ModernTopBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            ConnectionQualityBadge(quality = connectivity)
             Text(
-                text = stringResource(id = R.string.app_title_caps),
+                text = stringResource(id = R.string.radio_name),
                 style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.5.sp
+                    fontWeight = FontWeight.SemiBold
                 ),
                 color = Color.White
             )
-            ConnectionQualityBadge(quality = connectivity)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             var favPressed by remember { mutableStateOf(false) }
@@ -726,9 +743,94 @@ private fun PlayerControlsSection(mediaController: MediaController?, viewModel: 
         ) {
             VolumeControl(mediaController = mediaController)
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                SleepTimerButton(mediaController = mediaController)
                 PlaybackControl(mediaController = mediaController)
                 FavoriteToggle(viewModel = viewModel, onLiked = onLiked)
             }
+            UtilityRow(onRecentlyPlayedClick = { viewModel.loadHistory() })
+        }
+    }
+}
+@Composable
+private fun SleepTimerButton(mediaController: MediaController?) {
+    val scope = rememberCoroutineScope()
+    var menuExpanded by remember { mutableStateOf(false) }
+    var timerJob by remember { mutableStateOf<Job?>(null) }
+    var isActive by remember { mutableStateOf(false) }
+    val tint = if (isActive) Color(0xFF1DB954) else Color.Black
+    Box {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = Color.White,
+            tonalElevation = 2.dp,
+            shadowElevation = 8.dp
+        ) {
+            IconButton(
+                onClick = { menuExpanded = true },
+                modifier = Modifier.size(56.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Alarm,
+                    contentDescription = stringResource(id = R.string.cd_sleep_timer),
+                    tint = tint
+                )
+            }
+        }
+        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+            listOf(5, 15, 30, 45, 60).forEach { minutes ->
+                DropdownMenuItem(
+                    text = { Text("$minutes min") },
+                    onClick = {
+                        menuExpanded = false
+                        timerJob?.cancel()
+                        isActive = true
+                        timerJob = scope.launch {
+                            delay(minutes * 60_000L)
+                            mediaController?.pause()
+                            isActive = false
+                        }
+                    }
+                )
+            }
+            if (isActive) {
+                DropdownMenuItem(
+                    text = { Text("Cancel timer") },
+                    onClick = {
+                        menuExpanded = false
+                        timerJob?.cancel()
+                        isActive = false
+                    }
+                )
+            }
+        }
+    }
+}
+@Composable
+private fun UtilityRow(onRecentlyPlayedClick: () -> Unit) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(32.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Live captions aren't implemented yet; shown to match the layout, disabled for now.
+        Icon(
+            imageVector = Icons.Default.Subtitles,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.3f),
+            modifier = Modifier.size(24.dp)
+        )
+        // Casting to another output isn't implemented yet; shown to match the layout, disabled for now.
+        Icon(
+            imageVector = Icons.Default.Cast,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.3f),
+            modifier = Modifier.size(24.dp)
+        )
+        IconButton(onClick = onRecentlyPlayedClick, modifier = Modifier.size(24.dp)) {
+            Icon(
+                imageVector = Icons.Default.History,
+                contentDescription = stringResource(id = R.string.cd_recently_played),
+                tint = Color.White.copy(alpha = 0.7f)
+            )
         }
     }
 }
@@ -842,7 +944,25 @@ private fun VolumeControl(mediaController: MediaController?) {
                 thumbColor = Color.White,
                 activeTrackColor = Color.White,
                 inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-            )
+            ),
+            thumb = {
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .background(Color.White, CircleShape)
+                )
+            },
+            track = { sliderState ->
+                SliderDefaults.Track(
+                    sliderState = sliderState,
+                    modifier = Modifier.height(4.dp),
+                    thumbTrackGapSize = 0.dp,
+                    colors = SliderDefaults.colors(
+                        activeTrackColor = Color.White,
+                        inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                    )
+                )
+            }
         )
     }
 }
@@ -885,6 +1005,7 @@ private fun PlaybackControl(mediaController: MediaController?) {
                 scaleX = scale
                 scaleY = scale
             },
+        shape = CircleShape,
         containerColor = Color.White,
         contentColor = Color.Black,
         elevation = FloatingActionButtonDefaults.elevation(

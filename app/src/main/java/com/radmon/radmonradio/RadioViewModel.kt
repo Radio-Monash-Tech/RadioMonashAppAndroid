@@ -10,6 +10,7 @@ import com.radmon.radmonradio.data.repository.FavoritesRepository
 import com.radmon.radmonradio.data.repository.SongFinderRepository
 import com.radmon.radmonradio.data.model.FavoriteTrack
 import com.radmon.radmonradio.data.model.NowPlaying
+import com.radmon.radmonradio.data.model.PlayedTrack
 import com.radmon.radmonradio.data.network.ScheduleLiveResponse
 import com.radmon.radmonradio.data.network.SongData
 import com.radmon.radmonradio.data.network.toNowPlaying
@@ -68,6 +69,8 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(RadioUiState())
     private val _songFinderState = MutableStateFlow<SongFinderState>(SongFinderState.Idle)
     val songFinderState: StateFlow<SongFinderState> = _songFinderState.asStateFlow()
+    private val _historyState = MutableStateFlow<HistoryState>(HistoryState.Idle)
+    val historyState: StateFlow<HistoryState> = _historyState.asStateFlow()
     
     val uiState: StateFlow<RadioUiState> = _uiState.asStateFlow()
     private var pollingJob: Job? = null
@@ -264,6 +267,18 @@ nextPollDelay = calculateBackoffDelay()
     fun dismissSongFinder() {
         _songFinderState.value = SongFinderState.Idle
     }
+    fun loadHistory() {
+        viewModelScope.launch {
+            _historyState.value = HistoryState.Loading
+            _historyState.value = repository.history().fold(
+                onSuccess = { tracks -> HistoryState.Success(tracks) },
+                onFailure = { error -> HistoryState.Error(error.message ?: "Failed to load recently played") }
+            )
+        }
+    }
+    fun dismissHistory() {
+        _historyState.value = HistoryState.Idle
+    }
     companion object {
         private const val TAG = "RadioViewModel"
         private const val MAX_RETRY_ATTEMPTS = 3
@@ -286,4 +301,11 @@ sealed class SongFinderState {
     data object Loading : SongFinderState()
     data class Success(val songData: SongData) : SongFinderState()
     data class Error(val message: String) : SongFinderState()
+}
+
+sealed class HistoryState {
+    data object Idle : HistoryState()
+    data object Loading : HistoryState()
+    data class Success(val tracks: List<PlayedTrack>) : HistoryState()
+    data class Error(val message: String) : HistoryState()
 }
