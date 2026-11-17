@@ -2,7 +2,9 @@ package com.radmon.radmonradio
 
 import android.content.Context
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.media3.session.MediaController
 import androidx.navigation.NavHostController
@@ -31,8 +33,6 @@ fun MyNavHost(innerPadding: PaddingValues, navController: NavHostController, uiS
             ModernRadioScreen(
                 uiState = uiState,
                 mediaController = mediaController,
-                onNavigateToStatistics = { navController.navigate("statistics") },
-                onNavigateToFavorites = { navController.navigate("favorites") },
                 viewModel = radioViewModel
             )
         }

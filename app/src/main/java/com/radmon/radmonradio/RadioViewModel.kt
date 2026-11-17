@@ -267,10 +267,10 @@ nextPollDelay = calculateBackoffDelay()
     fun dismissSongFinder() {
         _songFinderState.value = SongFinderState.Idle
     }
-    fun loadHistory() {
+    fun loadHistory(limit: Int = 5) {
         viewModelScope.launch {
             _historyState.value = HistoryState.Loading
-            _historyState.value = repository.history().fold(
+            _historyState.value = repository.history(limit).fold(
                 onSuccess = { tracks -> HistoryState.Success(tracks) },
                 onFailure = { error -> HistoryState.Error(error.message ?: "Failed to load recently played") }
             )
