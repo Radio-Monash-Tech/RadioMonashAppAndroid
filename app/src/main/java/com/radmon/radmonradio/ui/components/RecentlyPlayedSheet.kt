@@ -108,7 +108,7 @@ fun RecentlyPlayedSheet(
 }
 
 @Composable
-private fun TrackRow(title: String, artist: String, artworkUrl: String?, label: String? = null) {
+private fun TrackRow(title: String, artist: String?, artworkUrl: String?, label: String? = null) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -150,13 +150,15 @@ private fun TrackRow(title: String, artist: String, artworkUrl: String?, label: 
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Text(
-                text = artist,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.7f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            if (artist != null) {
+                Text(
+                    text = artist,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }

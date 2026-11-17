@@ -47,7 +47,8 @@ enum class Connectivity {
 
 data class RadioUiState(
     val songTitle: String = DEFAULT_TITLE,
-    val artistName: String = DEFAULT_ARTIST,
+    // null while a show is on air and no specific song is identified, matching iOS's displayArtist
+    val artistName: String? = DEFAULT_ARTIST,
     val artworkUrl: String = DEFAULT_ARTWORK_URL,
     val loadingState: LoadingState = LoadingState.Loading,
     val connectivity: Connectivity = Connectivity.GOOD,
@@ -57,7 +58,7 @@ data class RadioUiState(
     companion object {
         private const val DEFAULT_TITLE = "Radio Monash"
         private const val DEFAULT_ARTIST = "Live Stream"
-        private const val DEFAULT_ARTWORK_URL =
+        const val DEFAULT_ARTWORK_URL =
             "https://d4mt18vwj73wk.cloudfront.net/stationImage/2025-04-22T05:02:43Z-1024x1024.jpeg"
     }
 }
@@ -125,11 +126,13 @@ nextPollDelay = calculateBackoffDelay()
     }
 
     private fun updateStateWithNowPlaying(nowPlaying: NowPlaying, liveShow: com.radmon.radmonradio.data.model.LiveShow?) {
+        // the station logo during a show, with no song named, or with no cover art - mirrors iOS's showsStationLogo
+        val showsStationLogo = liveShow != null || nowPlaying == NowPlaying.offAir || nowPlaying.artworkUrl == null
         _uiState.update { currentState ->
             currentState.copy(
                 songTitle = liveShow?.name ?: nowPlaying.title,
-                artistName = if (liveShow != null) "Live Now" else nowPlaying.artist,
-                artworkUrl = nowPlaying.artworkUrl ?: currentState.artworkUrl,
+                artistName = if (liveShow != null) null else nowPlaying.artist,
+                artworkUrl = if (showsStationLogo) RadioUiState.DEFAULT_ARTWORK_URL else nowPlaying.artworkUrl!!,
                 loadingState = LoadingState.Success,
                 connectivity = Connectivity.GOOD,
                 consecutiveErrors = 0
@@ -227,12 +230,13 @@ nextPollDelay = calculateBackoffDelay()
         }
     fun toggleCurrentFavorite() {
         val state = _uiState.value
-        if (state.songTitle.isBlank() || state.artistName.isBlank()) return
+        val artist = state.artistName
+        if (state.songTitle.isBlank() || artist.isNullOrBlank()) return
         viewModelScope.launch {
             favoritesRepository.toggleFavorite(
                 FavoriteTrack(
                     title = state.songTitle,
-                    artist = state.artistName,
+                    artist = artist,
                     artworkUrl = state.artworkUrl.takeIf { it.isNotBlank() },
                     likedAt = System.currentTimeMillis()
                 )
@@ -246,7 +250,8 @@ nextPollDelay = calculateBackoffDelay()
     }
     fun findCurrentSongPlatforms() {
         val currentState = _uiState.value
-        if (currentState.songTitle.isEmpty() || currentState.artistName.isEmpty()) {
+        val artist = currentState.artistName
+        if (currentState.songTitle.isEmpty() || artist.isNullOrEmpty()) {
             _songFinderState.value = SongFinderState.Error("No song information available")
             return
         }
@@ -254,7 +259,7 @@ nextPollDelay = calculateBackoffDelay()
             _songFinderState.value = SongFinderState.Loading
             val result = songFinderRepository.findSongLinks(
                 songName = currentState.songTitle,
-                artistName = currentState.artistName
+                artistName = artist
             )
             _songFinderState.value = result.fold(
                 onSuccess = { songData -> SongFinderState.Success(songData) },
