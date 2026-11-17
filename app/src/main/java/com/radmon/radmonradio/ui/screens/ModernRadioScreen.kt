@@ -3,6 +3,7 @@ package com.radmon.radmonradio.ui.screens
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -22,8 +23,11 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,7 +35,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -40,11 +43,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Cast
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -72,6 +76,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -84,12 +89,16 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -110,6 +119,7 @@ import com.radmon.radmonradio.ui.components.RecentlyPlayedSheet
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 @Composable
 fun ModernRadioScreen(
@@ -134,36 +144,92 @@ fun ModernRadioScreen(
     }
     Box(modifier = Modifier.fillMaxSize()) {
         ArtworkBackgroundLayer(artworkUrl = uiState.artworkUrl)
+        val density = LocalDensity.current
+        val scope = rememberCoroutineScope()
+        val hearts = remember { mutableStateListOf<ScreenHeart>() }
+        var widthPx by remember { mutableFloatStateOf(0f) }
+        var heightPx by remember { mutableFloatStateOf(0f) }
         Column(
             modifier = Modifier
                 .fillMaxSize()
         ) {
             ModernTopBar(connectivity = uiState.connectivity)
-            Box(modifier = Modifier
-                .weight(1f)
-                .navigationBarsPadding()
+            // Scrollable so nothing (artist name, controls) ever gets silently clipped
+            // behind a sibling when content is taller than the available screen space.
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
+                ArtworkDisplayWithBuffering(
+                    artworkUrl = uiState.artworkUrl,
+                    isLoading = uiState.loadingState is LoadingState.Loading,
+                    isBuffering = isBuffering,
+                    onDoubleTap = { viewModel.findCurrentSongPlatforms() }
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+                MetadataDisplay(
+                    uiState = uiState,
+                    onRetry = { viewModel.retry() }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                val triggerBurst = remember(widthPx, heightPx) {
+                    {
+                        val safeW = if (widthPx > 0) widthPx else 1080f
+                        val safeH = if (heightPx > 0) heightPx else 1920f
+                        val count = 18
+                        repeat(count) { i ->
+                            val x = Random.nextFloat() * (safeW - 48f) + 24f
+                            val startY = safeH * (0.65f + Random.nextFloat() * 0.2f)
+                            val endY = -safeH * 0.1f
+                            val size = Random.nextInt(16, 28).toFloat()
+                            val rot = Random.nextFloat() * 30f - 15f
+                            val anim = Animatable(0f)
+                            val h = ScreenHeart(System.nanoTime(), x, startY, endY, size, rot, anim)
+                            hearts.add(h)
+                            scope.launch {
+                                if (i > 0) delay(i * 20L)
+                                anim.animateTo(1f, tween(durationMillis = Random.nextInt(900, 1400)))
+                                hearts.remove(h)
+                            }
+                        }
+                    }
+                }
+                PlayerControlsSection(
+                    mediaController = mediaController,
+                    viewModel = viewModel,
+                    uiState = uiState,
+                    onLiked = { triggerBurst() }
+                )
+            }
+        }
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            LaunchedEffect(maxWidth, maxHeight) {
+                widthPx = with(density) { maxWidth.toPx() }
+                heightPx = with(density) { maxHeight.toPx() }
+            }
+            hearts.forEach { h ->
+                val p = h.anim.value
+                val y = h.startYPx + (h.endYPx - h.startYPx) * p
+                val alpha = (1f - p).coerceIn(0f, 1f)
+                val scale = 0.7f + 0.5f * (1f - p)
+                Box(
                     modifier = Modifier
-                        .align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .offset { IntOffset(h.xPx.toInt(), y.toInt()) }
+                        .graphicsLayer {
+                            rotationZ = h.rotation
+                            scaleX = scale
+                            scaleY = scale
+                            this.alpha = alpha
+                        }
                 ) {
-                    ArtworkDisplayWithBuffering(
-                        artworkUrl = uiState.artworkUrl,
-                        isLoading = uiState.loadingState is LoadingState.Loading,
-                        isBuffering = isBuffering,
-                        onDoubleTap = { viewModel.findCurrentSongPlatforms() }
-                    )
-                    Spacer(modifier = Modifier.height(32.dp))
-                    MetadataDisplay(
-                        uiState = uiState,
-                        onRetry = { viewModel.retry() }
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    PlayerControlsSection(
-                        mediaController = mediaController,
-                        viewModel = viewModel,
-                        uiState = uiState
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = null,
+                        tint = Color(0xFFEF5350),
+                        modifier = Modifier.size(with(density) { h.sizeDp.dp })
                     )
                 }
             }
@@ -536,8 +602,18 @@ private fun ErrorStateDisplay(
     }
 }
 
+private data class ScreenHeart(
+    val id: Long,
+    val xPx: Float,
+    val startYPx: Float,
+    val endYPx: Float,
+    val sizeDp: Float,
+    val rotation: Float,
+    val anim: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>
+)
+
 @Composable
-private fun PlayerControlsSection(mediaController: MediaController?, viewModel: RadioViewModel, uiState: RadioUiState) {
+private fun PlayerControlsSection(mediaController: MediaController?, viewModel: RadioViewModel, uiState: RadioUiState, onLiked: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -562,7 +638,7 @@ private fun PlayerControlsSection(mediaController: MediaController?, viewModel: 
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 SleepTimerButton(mediaController = mediaController)
                 PlaybackControl(mediaController = mediaController)
-                RecentlyPlayedButton(onClick = { viewModel.loadHistory() })
+                FavoriteToggle(viewModel = viewModel, onLiked = onLiked)
             }
             UtilityRow(onRecentlyPlayedClick = { viewModel.loadHistory() })
         }
@@ -625,39 +701,49 @@ private fun SleepTimerButton(mediaController: MediaController?) {
 @Composable
 private fun UtilityRow(onRecentlyPlayedClick: () -> Unit) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(32.dp),
+        horizontalArrangement = Arrangement.spacedBy(40.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Live captions aren't implemented yet; shown to match the layout, disabled for now.
-        Icon(
-            imageVector = Icons.Default.Subtitles,
-            contentDescription = null,
-            tint = Color.White.copy(alpha = 0.3f),
-            modifier = Modifier.size(24.dp)
-        )
+        Box(modifier = Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Default.Subtitles,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.5f),
+                modifier = Modifier.size(36.dp)
+            )
+        }
         // Casting to another output isn't implemented yet; shown to match the layout, disabled for now.
-        Icon(
-            imageVector = Icons.Default.Cast,
-            contentDescription = null,
-            tint = Color.White.copy(alpha = 0.3f),
-            modifier = Modifier.size(24.dp)
-        )
-        IconButton(onClick = onRecentlyPlayedClick, modifier = Modifier.size(24.dp)) {
+        Box(modifier = Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Default.Cast,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.5f),
+                modifier = Modifier.size(36.dp)
+            )
+        }
+        IconButton(onClick = onRecentlyPlayedClick, modifier = Modifier.size(56.dp)) {
             Icon(
                 imageVector = Icons.Default.History,
                 contentDescription = stringResource(id = R.string.cd_recently_played),
-                tint = Color.White.copy(alpha = 0.7f)
+                tint = Color.White,
+                modifier = Modifier.size(36.dp)
             )
         }
     }
 }
 @Composable
-private fun RecentlyPlayedButton(onClick: () -> Unit) {
+private fun FavoriteToggle(viewModel: RadioViewModel, onLiked: () -> Unit) {
+    val haptic = LocalHapticFeedback.current
+    val isFav by viewModel.isCurrentFavoriteFlow().collectAsStateWithLifecycle(initialValue = false)
+    val icon = if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder
+    val tint = if (isFav) Color(0xFF8B0000) else Color.Black
+    var lastClickTs by remember { mutableStateOf(0L) }
     var isPressed by remember { mutableStateOf(false) }
     val pressScale by animateFloatAsState(
         targetValue = if (isPressed) 0.9f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "recentlyPlayedPressScale"
+        label = "favPressScale"
     )
     Surface(
         shape = RoundedCornerShape(12.dp),
@@ -679,16 +765,19 @@ private fun RecentlyPlayedButton(onClick: () -> Unit) {
                             tryAwaitRelease()
                             isPressed = false
                         },
-                        onTap = { onClick() }
+                        onTap = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            val now = System.currentTimeMillis()
+                            if (now - lastClickTs < 300) return@detectTapGestures
+                            lastClickTs = now
+                            if (!isFav) onLiked()
+                            viewModel.toggleCurrentFavorite()
+                        }
                     )
                 },
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.List,
-                contentDescription = stringResource(id = R.string.cd_recently_played),
-                tint = Color.Black
-            )
+            Icon(imageVector = icon, contentDescription = stringResource(id = R.string.cd_toggle_favorite), tint = tint)
         }
     }
 }

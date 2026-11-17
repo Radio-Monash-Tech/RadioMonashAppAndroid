@@ -23,7 +23,7 @@ import com.radmon.radmonradio.ui.screens.ModernRadioScreen
 fun MyNavHost(innerPadding: PaddingValues, navController: NavHostController, uiState: RadioUiState, mediaController: MediaController?, radioViewModel: RadioViewModel){
     NavHost(
         navController = navController,
-
+        modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
         startDestination =
 
             "radio"
