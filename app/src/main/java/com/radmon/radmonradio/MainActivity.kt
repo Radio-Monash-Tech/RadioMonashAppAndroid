@@ -65,6 +65,7 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private val radioViewModel: RadioViewModel by viewModels()
+    private val scheduleViewModel: ScheduleViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -157,7 +158,8 @@ notifPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                         navController = navController,
                         uiState = uiState,
                         mediaController = mediaController,
-                        radioViewModel = radioViewModel
+                        radioViewModel = radioViewModel,
+                        scheduleViewModel = scheduleViewModel
                     )
                 }
             }

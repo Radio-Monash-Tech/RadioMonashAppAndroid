@@ -8,19 +8,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.media3.session.MediaController
 import androidx.navigation.NavHostController
+import androidx.navigation.navArgument
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.radmon.radmonradio.ui.screens.ArticlesScreen
 import com.radmon.radmonradio.ui.screens.FavoritesScreen
 import com.radmon.radmonradio.ui.screens.LibraryScreen
-import com.radmon.radmonradio.ui.screens.ScheduleScreen
+import com.radmon.radmonradio.ui.screens.schedule.ScheduleScreen
+import com.radmon.radmonradio.ui.screens.schedule.ShowDetailScreen
 import com.radmon.radmonradio.ui.screens.SearchScreen
 import com.radmon.radmonradio.ui.screens.StatisticsScreen
 import com.radmon.radmonradio.ui.screens.ModernRadioScreen
 
 @Composable
 //creating navhost
-fun MyNavHost(innerPadding: PaddingValues, navController: NavHostController, uiState: RadioUiState, mediaController: MediaController?, radioViewModel: RadioViewModel){
+fun MyNavHost(
+    innerPadding: PaddingValues,
+    navController: NavHostController,
+    uiState: RadioUiState,
+    mediaController: MediaController?,
+    radioViewModel: RadioViewModel,
+    scheduleViewModel: ScheduleViewModel
+){
     NavHost(
         navController = navController,
         modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
@@ -53,7 +63,22 @@ fun MyNavHost(innerPadding: PaddingValues, navController: NavHostController, uiS
             )
         }
         composable("schedule") {
-            ScheduleScreen()
+            ScheduleScreen(
+                viewModel = scheduleViewModel,
+                onShowSelected = { seriesId -> navController.navigate("show/$seriesId") }
+            )
+        }
+        composable(
+            "show/{seriesId}",
+            arguments = listOf(navArgument("seriesId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val seriesId = backStackEntry.arguments?.getString("seriesId").orEmpty()
+            ShowDetailScreen(
+                seriesId = seriesId,
+                scheduleViewModel = scheduleViewModel,
+                mediaController = mediaController,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable("library") {
             LibraryScreen()

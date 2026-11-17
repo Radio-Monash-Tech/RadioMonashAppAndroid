@@ -12,4 +12,12 @@ interface RadioCultService {
     /** Recently played songs. */
     @GET("api/station/radio-monash/streaming/history/latest-results")
     suspend fun history(@Query("limit") limit: Int): HistoryResponse
+
+    /** Shows scheduled between two dates (ISO-8601, UTC). */
+    @GET("api/station/radio-monash/schedule")
+    suspend fun schedule(
+        @Query("startDate") startDate: String,
+        @Query("endDate") endDate: String,
+        @Query("expand") expand: String = "artist"
+    ): ScheduleResponse
 }

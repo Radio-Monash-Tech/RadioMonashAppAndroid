@@ -2,14 +2,18 @@ package com.radmon.radmonradio.data.repository
 
 import android.util.Log
 import com.radmon.radmonradio.data.model.PlayedTrack
+import com.radmon.radmonradio.data.model.ScheduledShow
 import com.radmon.radmonradio.data.network.ApiClient
 import com.radmon.radmonradio.data.network.ScheduleLiveResponse
 import com.radmon.radmonradio.data.network.toPlayedTracks
+import com.radmon.radmonradio.data.network.toScheduledShows
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.time.Instant
+import java.time.format.DateTimeFormatter
 
 /** Repository for fetching radio station metadata and play history. Handles API calls and error handling */
 class RadioRepository {
@@ -31,6 +35,19 @@ class RadioRepository {
     suspend fun history(limit: Int = 20): Result<List<PlayedTrack>> = withContext(Dispatchers.IO) {
         runCatching { service.history(limit).toPlayedTracks() }
             .onFailure { exception -> logError(exception) }
+    }
+
+    /**
+     * Fetches the shows scheduled between [start] and [end].
+     * @return Result containing the scheduled shows, in start order, or error
+     */
+    suspend fun schedule(start: Instant, end: Instant): Result<List<ScheduledShow>> = withContext(Dispatchers.IO) {
+        runCatching {
+            service.schedule(
+                startDate = DateTimeFormatter.ISO_INSTANT.format(start),
+                endDate = DateTimeFormatter.ISO_INSTANT.format(end)
+            ).toScheduledShows()
+        }.onFailure { exception -> logError(exception) }
     }
 
     /**
