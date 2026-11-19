@@ -10,6 +10,7 @@ object ApiClient {
     private const val BASE_URL = "https://api.radiocult.fm/"
     private const val ITUNES_BASE_URL = "https://itunes.apple.com/"
     private const val SONGLINK_BASE_URL = "https://api.song.link/"
+    private const val SQUARESPACE_BASE_URL = "https://www.radiomonash.online/"
 
     /** Shared HTTP client with configured timeouts */
     private val okHttpClient: OkHttpClient = OkHttpClient.Builder()
@@ -53,5 +54,15 @@ object ApiClient {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(SongLinkApiService::class.java)
+    }
+
+    /** Service for fetching journalism articles from the Radio Monash Squarespace site */
+    val squarespaceApiService: SquarespaceApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(SQUARESPACE_BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(SquarespaceApiService::class.java)
     }
 }

@@ -15,6 +15,7 @@ import androidx.navigation.compose.composable
 import com.radmon.radmonradio.ui.screens.ArticlesScreen
 import com.radmon.radmonradio.ui.screens.FavoritesScreen
 import com.radmon.radmonradio.ui.screens.LibraryScreen
+import com.radmon.radmonradio.ui.screens.journalism.article.ArticleScreen
 import com.radmon.radmonradio.ui.screens.schedule.ScheduleScreen
 import com.radmon.radmonradio.ui.screens.schedule.ShowDetailScreen
 import com.radmon.radmonradio.ui.screens.SearchScreen
@@ -29,7 +30,8 @@ fun MyNavHost(
     uiState: RadioUiState,
     mediaController: MediaController?,
     radioViewModel: RadioViewModel,
-    scheduleViewModel: ScheduleViewModel
+    scheduleViewModel: ScheduleViewModel,
+    journalismViewModel: JournalismViewModel
 ){
     NavHost(
         navController = navController,
@@ -59,7 +61,19 @@ fun MyNavHost(
         }
         composable("articles") {
             ArticlesScreen(
-                onNavigateBack = { navController.popBackStack() },
+                viewModel = journalismViewModel,
+                onOpenArticle = { articleId -> navController.navigate("article/$articleId") }
+            )
+        }
+        composable(
+            "article/{articleId}",
+            arguments = listOf(navArgument("articleId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val articleId = backStackEntry.arguments?.getString("articleId").orEmpty()
+            ArticleScreen(
+                articleId = articleId,
+                viewModel = journalismViewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         composable("schedule") {

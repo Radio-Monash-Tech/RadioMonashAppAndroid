@@ -1,14 +1,14 @@
+/** Nav entry point for the Journalism tab. */
 package com.radmon.radmonradio.ui.screens
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Article
 import androidx.compose.runtime.Composable
+import com.radmon.radmonradio.JournalismViewModel
+import com.radmon.radmonradio.ui.screens.journalism.JournalismScreen
 
 @Composable
-fun ArticlesScreen(onNavigateBack: () -> Unit) {
-    PlaceholderScreen(
-        title = "Journalism",
-        subtitle = "Articles from Radio Monash will appear here.",
-        icon = Icons.Filled.Article
+fun ArticlesScreen(viewModel: JournalismViewModel, onOpenArticle: (String) -> Unit) {
+    JournalismScreen(
+        viewModel = viewModel,
+        onOpenArticle = { onOpenArticle(it.id) }
     )
 }
