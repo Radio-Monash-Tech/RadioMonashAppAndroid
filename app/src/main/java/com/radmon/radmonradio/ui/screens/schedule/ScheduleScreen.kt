@@ -112,19 +112,35 @@ fun ScheduleScreen(
     }
 }
 
-/** Large title + subtitle, with a "Following" filter pill in the top-right. */
+/** Large title + subtitle, with a "Following" filter pill at the far right of the same row. */
 @Composable
 private fun ScheduleTopBar(isFollowedOnly: Boolean, onToggleFollowedOnly: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Column(Modifier.fillMaxWidth()) {
+        Spacer(Modifier.height(16.dp))
         Row(
             Modifier
                 .fillMaxWidth()
-                .height(64.dp)
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.End,
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Column {
+                Text(
+                    text = "Schedule",
+                    color = cs.onBackground,
+                    fontSize = 28.sp,
+                    lineHeight = 36.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "Australia/Melbourne",
+                    color = cs.onSurfaceVariant,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp
+                )
+            }
+
             val pillContainer = if (isFollowedOnly) cs.primary else cs.secondaryContainer
             val pillContent = if (isFollowedOnly) cs.onPrimary else cs.onSecondaryContainer
             Row(
@@ -151,21 +167,6 @@ private fun ScheduleTopBar(isFollowedOnly: Boolean, onToggleFollowedOnly: () -> 
                     fontWeight = FontWeight.Medium
                 )
             }
-        }
-        Column(Modifier.padding(horizontal = 20.dp)) {
-            Text(
-                text = "Schedule",
-                color = cs.onBackground,
-                fontSize = 28.sp,
-                lineHeight = 36.sp,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = "Australia/Melbourne · from RadioCult",
-                color = cs.onSurfaceVariant,
-                fontSize = 12.sp,
-                lineHeight = 16.sp
-            )
         }
         Spacer(Modifier.height(12.dp))
     }
